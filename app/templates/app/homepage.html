@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Twitter</title>
+    <form>
+      <label>Enter Tweet ID to Get Tweet Data</label><br><br>
+      <label>Tweet Id </label>
+      <input type="text" id="tweet_id" name="tweet_id"><br><br>
+      <input type="submit" value="Submit">
+    </form>
+      <br>
+      <br>
+    <form>
+      <label>Enter User Id to Get User Data</label><br><br>
+      <label>User Id </label>
+      <input type="text" id="user_id" name="user_id"><br><br>
+      <h5>Note: You Can Filter On Last 7 Days Data</h5>
+      <label>Start Date </label>
+      <input type="text" id="start_date" name="start_date" placeholder="YYYY-MM-DD"><br><br>
+      <label>End Date  </label>
+      <input type="text" id="end_date" name="end_date" placeholder="YYYY-MM-DD"><br><br>
+      <input type="submit" value="Submit">
+    </form><br>
+
+    {% if error %}
+    <h5 style="color:red">{{error}}</h5>
+    {% endif%}
+
+
+    {% ifequal file_exists 'True' %}
+        {% if tweet_id %}
+        Please click on <a href="{% url 'download_result' %}">link</a> to download result.
+        {% endif%}
+        {% if user_id %}
+        Please click on <a href="{% url 'download_result' %}">link</a> to download result.
+        {% endif%}
+    {% else %}
+        <h5 style="color:red">No records found for given search</h5>
+    {% endifequal %}
+</head>
+<body>
+
+</body>
+</html>
