@@ -1,4 +1,5 @@
 import os
+import re
 import pandas as pd
 from time import sleep
 from datetime import datetime
@@ -189,7 +190,7 @@ def get_user_mentions(user_id, start_date, end_date, next_token=None,
     user_mentions = um.main()
 
     if 'data' in user_mentions:
-        mentions.extend(user_mentions['data'])
+        mentions.extend(user_mentions.get('data', []))
         users.extend(user_mentions['includes']['users'])
 
     if 'next_token' in user_mentions['meta']:
@@ -219,7 +220,6 @@ def write_excel(result):
     writer = pd.ExcelWriter('/code/output.xlsx')
     result.to_excel(writer)
     writer.save()
-    writer.close()
 
 
 def run_tweet_data(tweet_id):
@@ -269,19 +269,27 @@ class Command(BaseCommand):
             print(f"User id processing: {options['user_id'][0]}")
 
             start_date = end_date = None
+            regex = "\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d"
+
             if options['start_date'][0] != '':
-                start_date = f"{options['start_date'][0]}T00:00:00Z"
-                end_date = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-            if options['end_date'][0] != '':
-                utcnow = datetime.utcnow().strftime('%Y-%m-%d')
-                if utcnow == options['end_date'][0]:
+                if re.match(regex, options['start_date'][0]):
+                    start_date, start_time = options['start_date'][0].split()
+                    start_date = f"{start_date}T{start_time}Z"
                     end_date = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
                 else:
-                    end_date = f"{options['end_date'][0]}T23:59:59Z"
+                    raise Exception(f"Start date format is invalid ["
+                                    f"{options['start_date'][0]}]")
+            if options['end_date'][0] != '':
+                if re.match(regex, options['end_date'][0]):
+                    end_date, end_time = options['end_date'][0].split()
+                    end_date = f"{end_date}T{end_time}Z"
+                else:
+                    raise Exception(f"End date format is invalid ["
+                                    f"{options['end_date'][0]}]")
 
             user_id = get_userid(options['user_id'][0])
 
             if user_id:
                 run_user_data(user_id, start_date, end_date)
             else:
-                raise f"User not found: {options['user_id'][0]}"
+                raise Exception(f"User not found: {options['user_id'][0]}")

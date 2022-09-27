@@ -26,12 +26,8 @@ def twitter(request):
             print(f"Error: {e}")
             context["error"] = f"Error: {e}"
     elif user_id:
-        try:
-            call_command('tweet_stat', '--user_id', user_id, '--start_date',
-                     start_date, '--end_date', end_date)
-        except Exception as e:
-            print(f"Error: {e}")
-            context["error"] = f"Error: {e}"
+        call_command('tweet_stat', '--user_id', user_id, '--start_date',
+                 start_date, '--end_date', end_date)
 
     if not os.path.exists(file_path):
         context['file_exists'] = 'False'
