@@ -159,7 +159,7 @@ def get_user_tweets(user_id, start_date, end_date, next_token=None, prev_tweets=
     ut = UserTweets(user_id=user_id, start_date=start_date,
                     end_date=end_date, next_token=next_token)
     user_tweets = ut.main()
-    tweets.extend([tweet['id'] for tweet in user_tweets['data']])
+    tweets.extend([tweet['id'] for tweet in user_tweets.get('data', [])])
 
     if 'next_token' in user_tweets['meta']:
         get_user_tweets(user_id, start_date, end_date, user_tweets['meta']['next_token'], tweets)
