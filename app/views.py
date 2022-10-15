@@ -11,6 +11,7 @@ file_path = "/code/output.xlsx"
 def twitter(request):
     tweet_id = request.GET.get('tweet_id', None)
     user_id = request.GET.get('user_id', None)
+    target_user_id = request.GET.get('target_user_id', None)
     start_date = request.GET.get('start_date', None)
     end_date = request.GET.get('end_date', None)
 
@@ -26,8 +27,14 @@ def twitter(request):
             print(f"Error: {e}")
             context["error"] = f"Error: {e}"
     elif user_id:
-        call_command('tweet_stat', '--user_id', user_id, '--start_date',
-                 start_date, '--end_date', end_date)
+
+        call_command(
+            'tweet_stat',
+            '--user_id', user_id,
+            '--target_user_id', target_user_id,
+            '--start_date', start_date,
+            '--end_date', end_date,
+        )
 
     if not os.path.exists(file_path):
         context['file_exists'] = 'False'

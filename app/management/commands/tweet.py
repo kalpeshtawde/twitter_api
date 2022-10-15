@@ -276,23 +276,3 @@ class UserLookup(Tweet):
         url = self.create_url()
         json_response = self.connect_to_endpoint(url)
         return json_response
-
-
-if __name__ == "__main__":
-    # qt = QuoteTweet()
-    # qt.main()
-    # 
-    # lu = LikingUsers()
-    # lu.main()
-    #
-    # rb = RetweetedBy()
-    # rb.main()
-    #
-    # tr = TweetReply()
-    # tr.main()
-
-    # ut = UserTweets(start_date="2022-09-18T00:00:00Z", end_date="2022-09-19T23:59:59Z")
-    # ut.main()
-
-    ut = UserMentions(start_date="2022-09-18T00:00:00Z", end_date="2022-09-19T23:59:59Z")
-    ut.main()

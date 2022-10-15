@@ -1,6 +1,7 @@
 import os
 import re
 import pandas as pd
+import datetime as DT
 from time import sleep
 from datetime import datetime
 
@@ -179,6 +180,19 @@ def get_user_tweets(user_id, start_date, end_date, next_token=None, prev_tweets=
             return df
     return None
 
+def get_user_tweets_text(user_id, start_date, end_date, next_token=None, prev_tweets=[]):
+    print(f"Getting user tweets with token {next_token}")
+    tweets = prev_tweets
+    ut = UserTweets(user_id=user_id, start_date=start_date,
+                    end_date=end_date, next_token=next_token)
+    user_tweets = ut.main()
+    tweets.extend([tweet['text'] for tweet in user_tweets.get('data', [])])
+
+    if 'next_token' in user_tweets['meta']:
+        get_user_tweets(user_id, start_date, end_date, user_tweets['meta']['next_token'], tweets)
+
+    return tweets
+
 
 def get_user_mentions(user_id, start_date, end_date, next_token=None,
                       prev_mentions=[], prev_users=[]):
@@ -222,24 +236,47 @@ def write_excel(result):
     writer.save()
 
 
-def run_tweet_data(tweet_id):
+def run_by_tweet_id(tweet_id):
     print("Writing data to output.xlsx")
     result = get_tweet_stat(tweet_id)
     print(result)
     write_excel(result)
 
 
-def run_user_data(user_id, start_date, end_date):
+def run_by_user_id(user_name, start_date, end_date, target_user_name=None):
+    user_id = get_userid(user_name)
+
     tweets = get_user_tweets(user_id, start_date, end_date, prev_tweets=[])
     mentions = get_user_mentions(user_id, start_date, end_date, prev_mentions=[], prev_users=[])
 
     status = all(item is None for item in [tweets, mentions])
 
     if not status:
-        result = pd.concat([tweets, mentions])
+        if target_user_name:
+            target_user_id = get_userid(target_user_name)
+            tweets_text = get_user_tweets_text(
+                target_user_id, start_date, end_date, prev_tweets=[]
+            )
+
+            count = 0
+            for t in tweets_text:
+                if f'@{user_name}' in t:
+                    count += 1
+
+            tags = pd.DataFrame.from_records(
+                [{'username': target_user_name, 'tags': count}],
+                columns=['username', 'tags'],
+            )
+            tags = tags.set_index('username').sort_index(axis=0)
+
+            result = pd.concat([tweets, mentions, tags])
+        else:
+            result = pd.concat([tweets, mentions])
+
         result = result.groupby('username').sum()
         print("#########################")
         print(result)
+
         write_excel(result)
 
 
@@ -255,16 +292,18 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--tweet_id', nargs='+', type=int)
         parser.add_argument('--user_id', nargs='+', type=str)
+        parser.add_argument('--target_user_id', nargs='+', type=str)
         parser.add_argument('--start_date', nargs='+', type=str)
         parser.add_argument('--end_date', nargs='+', type=str)
 
     def handle(self, *args, **options):
+        print(options)
         if os.path.exists('/code/output.xlsx'):
             os.unlink('/code/output.xlsx')
 
         if options['tweet_id'] is not None:
             print(f"Tweet id processing: {options['tweet_id'][0]}")
-            run_tweet_data(options['tweet_id'][0])
+            run_by_tweet_id(options['tweet_id'][0])
         elif options['user_id'] is not None:
             print(f"User id processing: {options['user_id'][0]}")
 
@@ -279,6 +318,10 @@ class Command(BaseCommand):
                 else:
                     raise Exception(f"Start date format is invalid ["
                                     f"{options['start_date'][0]}]")
+            else:
+                # If start date not provided, go 7 days back
+                start_date = (datetime.utcnow() - DT.timedelta(days=7)).strftime('%Y-%m-%dT%H:%M:%SZ')
+
             if options['end_date'][0] != '':
                 if re.match(regex, options['end_date'][0]):
                     end_date, end_time = options['end_date'][0].split()
@@ -287,9 +330,16 @@ class Command(BaseCommand):
                     raise Exception(f"End date format is invalid ["
                                     f"{options['end_date'][0]}]")
 
-            user_id = get_userid(options['user_id'][0])
+            user_name = options['user_id'][0]
 
-            if user_id:
-                run_user_data(user_id, start_date, end_date)
+            if user_name:
+                target_user_name = None
+                if options['target_user_id'][0] != '':
+                    target_user_name = options['target_user_id'][0]
+
+                run_by_user_id(
+                    user_name, start_date, end_date,
+                    target_user_name=target_user_name
+                )
             else:
                 raise Exception(f"User not found: {options['user_id'][0]}")
